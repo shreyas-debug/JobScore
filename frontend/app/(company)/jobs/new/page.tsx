@@ -4,12 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "@/lib/api-client";
+import type { SkillRequirement } from "@/lib/types";
 
 export default function NewJobPage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [skills, setSkills] = useState<string[]>([]);
+  const [skills, setSkills] = useState<SkillRequirement[]>([]);
   const [newSkill, setNewSkill] = useState("");
   const [minYearsExp, setMinYearsExp] = useState<number | "">("");
   const [salaryMin, setSalaryMin] = useState<number | "">("");
@@ -23,14 +24,22 @@ export default function NewJobPage() {
 
   function addSkill() {
     const trimmed = newSkill.trim();
-    if (trimmed && !skills.includes(trimmed)) {
-      setSkills([...skills, trimmed]);
+    if (trimmed && !skills.find(s => s.skill === trimmed)) {
+      setSkills([...skills, { skill: trimmed, level: "required" }]);
       setNewSkill("");
     }
   }
 
-  function removeSkill(toRemove: string) {
-    setSkills(skills.filter((s) => s !== toRemove));
+  function removeSkill(skill: string) {
+    setSkills(skills.filter((s) => s.skill !== skill));
+  }
+
+  function toggleLevel(skill: string) {
+    setSkills(skills.map(s => 
+      s.skill === skill
+        ? { ...s, level: s.level === "required" ? "preferred" : "required" }
+        : s
+    ));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -142,15 +151,34 @@ export default function NewJobPage() {
 
             {/* Skills */}
             <div>
-              <label className="form__label">Required Skills</label>
+              <label className="form__label">Skills</label>
+              <p style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", margin: "4px 0 10px" }}>
+                Add skills and toggle between <strong>Required</strong> (solid) and <strong>Preferred</strong> (dashed) — required skills count more in matching.
+              </p>
               <div style={{ marginTop: 8, marginBottom: 12 }}>
                 <div className="skill-chips">
-                  {skills.map((skill) => (
-                    <span key={skill} className="skill-chip skill-chip--highlight">
-                      {skill}
+                  {skills.map((s) => (
+                    <span
+                      key={s.skill}
+                      className="skill-chip skill-chip--highlight"
+                      style={s.level === "preferred" ? {
+                        borderStyle: "dashed",
+                        background: "transparent",
+                        color: "var(--color-text-muted)"
+                      } : {}}
+                    >
                       <button
                         type="button"
-                        onClick={() => removeSkill(skill)}
+                        onClick={() => toggleLevel(s.skill)}
+                        title={`Currently ${s.level} — click to toggle`}
+                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.7rem", fontWeight: 700, color: s.level === "required" ? "var(--color-accent)" : "var(--color-text-dim)", padding: "0 4px 0 0" }}
+                      >
+                        {s.level === "required" ? "REQ" : "PREF"}
+                      </button>
+                      {s.skill}
+                      <button
+                        type="button"
+                        onClick={() => removeSkill(s.skill)}
                         className="skill-chip__remove"
                       >
                         ✕

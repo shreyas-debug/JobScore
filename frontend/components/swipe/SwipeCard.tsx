@@ -146,25 +146,39 @@ export function SwipeCard({ job, onSwipe, externalSwipe }: SwipeCardProps) {
           )}
 
           {/* Skill Tags */}
-          {job.required_skills && job.required_skills.length > 0 && (
-            <div style={{ marginTop: "auto" }}>
-              <div style={{ fontSize: "0.75rem", color: "var(--color-text-dim)", textTransform: "uppercase", fontWeight: 700, marginBottom: 8 }}>
-                Required Skills
+          {job.required_skills && job.required_skills.length > 0 && (() => {
+            const shown = job.required_skills.slice(0, 5);
+            const remaining = job.required_skills.length - 5;
+            return (
+              <div style={{ marginTop: "auto" }}>
+                <div style={{ fontSize: "0.75rem", color: "var(--color-text-dim)", textTransform: "uppercase", fontWeight: 700, marginBottom: 8 }}>
+                  Skills
+                </div>
+                <div className="swipe-card__skills">
+                  {shown.map((s) => (
+                    <span
+                      key={s.skill}
+                      data-testid="skill-tag"
+                      className="skill-tag"
+                      title={s.level === "required" ? "Required" : "Preferred"}
+                      style={s.level === "preferred" ? {
+                        background: "transparent",
+                        borderStyle: "dashed",
+                        color: "var(--color-text-muted)"
+                      } : {}}
+                    >
+                      {s.skill}
+                    </span>
+                  ))}
+                  {remaining > 0 && (
+                    <span className="skill-tag" style={{ color: "var(--color-text-dim)", background: "transparent", border: "none" }}>
+                      +{remaining} more
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="swipe-card__skills">
-                {job.required_skills.slice(0, 4).map((skill) => (
-                  <span key={skill} data-testid="skill-tag" className="skill-tag">
-                    {skill}
-                  </span>
-                ))}
-                {job.required_skills.length > 4 && (
-                  <span className="skill-tag" style={{ color: "var(--color-text-dim)", background: "transparent", border: "none" }}>
-                    +{job.required_skills.length - 4} more
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
+            );
+          })()}
           
           <div style={{ textAlign: "center", marginTop: 8, color: "var(--color-text-dim)", fontSize: "0.75rem" }}>
             Tap to reveal details
@@ -188,20 +202,40 @@ export function SwipeCard({ job, onSwipe, externalSwipe }: SwipeCardProps) {
             </p>
           </div>
 
-          {job.required_skills && job.required_skills.length > 0 && (
-            <div style={{ marginTop: 24 }}>
-              <div style={{ fontSize: "0.75rem", color: "var(--color-text-dim)", textTransform: "uppercase", fontWeight: 700, marginBottom: 12 }}>
-                All Required Skills
+          {job.required_skills && job.required_skills.length > 0 && (() => {
+            const required = job.required_skills.filter(s => s.level === "required");
+            const preferred = job.required_skills.filter(s => s.level === "preferred");
+            return (
+              <div style={{ marginTop: 20 }}>
+                {required.length > 0 && (
+                  <>
+                    <div style={{ fontSize: "0.72rem", color: "var(--color-text-dim)", textTransform: "uppercase", fontWeight: 700, marginBottom: 8 }}>
+                      Required
+                    </div>
+                    <div className="swipe-card__skills" style={{ flexWrap: "wrap", marginBottom: 12 }}>
+                      {required.map(s => (
+                        <span key={s.skill} className="skill-tag">{s.skill}</span>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {preferred.length > 0 && (
+                  <>
+                    <div style={{ fontSize: "0.72rem", color: "var(--color-text-dim)", textTransform: "uppercase", fontWeight: 700, marginBottom: 8 }}>
+                      Nice to Have
+                    </div>
+                    <div className="swipe-card__skills" style={{ flexWrap: "wrap" }}>
+                      {preferred.map(s => (
+                        <span key={s.skill} className="skill-tag" style={{ background: "transparent", borderStyle: "dashed", color: "var(--color-text-muted)" }}>
+                          {s.skill}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
-              <div className="swipe-card__skills" style={{ flexWrap: "wrap" }}>
-                {job.required_skills.map((skill) => (
-                  <span key={skill} className="skill-tag" style={{ background: "var(--color-bg)", borderColor: "var(--color-border)" }}>
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
       </motion.div>
     </motion.div>
