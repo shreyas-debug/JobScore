@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, Field
+from typing import Literal
 
 
 # ── Candidate ────────────────────────────────────────────────────────────
@@ -85,10 +86,20 @@ class RefreshRequest(BaseModel):
 # ── Job Listings ──────────────────────────────────────────────────────────
 
 
+class SkillRequirement(BaseModel):
+    """A single skill with a required/preferred tier.
+    
+    Legacy flat-string format is still accepted at API boundaries for
+    backward compat — the seed script and migration handle the conversion.
+    """
+    skill: str
+    level: Literal["required", "preferred"] = "required"
+
+
 class JobListingCreate(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     description: str | None = None
-    required_skills: list[str] | None = None
+    required_skills: list[SkillRequirement] | None = None
     min_years_experience: int = Field(default=0, ge=0)
     salary_min: int | None = Field(default=None, ge=0)
     salary_max: int | None = Field(default=None, ge=0)
@@ -100,7 +111,7 @@ class JobListingCreate(BaseModel):
 class JobListingUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
-    required_skills: list[str] | None = None
+    required_skills: list[SkillRequirement] | None = None
     min_years_experience: int | None = Field(default=None, ge=0)
     salary_min: int | None = None
     salary_max: int | None = None
@@ -117,7 +128,7 @@ class JobListingResponse(BaseModel):
     company_id: uuid.UUID
     title: str
     description: str | None
-    required_skills: list[str] | None
+    required_skills: list[SkillRequirement] | None
     min_years_experience: int
     salary_min: int | None
     salary_max: int | None
@@ -199,7 +210,7 @@ class JobCardResponse(BaseModel):
     company_name: str | None = None
     company_industry: str | None = None
     description: str | None
-    required_skills: list[str] | None
+    required_skills: list[SkillRequirement] | None
     salary_min: int | None
     salary_max: int | None
     location: str | None

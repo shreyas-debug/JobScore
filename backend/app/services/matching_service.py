@@ -50,30 +50,56 @@ def cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
     return max(0.0, min(1.0, dot / (norm_a * norm_b)))
 
 
-def skill_overlap_ratio(candidate_skills: list[str], required_skills: list[str]) -> float:
-    """Jaccard-style overlap: intersection / len(required_skills).
+def skill_overlap_ratio(
+    candidate_skills: list[str],
+    job_skill_requirements: list[dict | str],
+) -> float:
+    """Weighted overlap: required skills count REQUIRED_SKILL_WEIGHT, preferred count PREFERRED_SKILL_WEIGHT.
 
-    Normalizes to lowercase for comparison. Treats None / empty as 0.
-    If required_skills is empty, returns 1.0 (no hard requirement → perfect fit).
+    Accepts both the new dict format [{"skill": str, "level": "required"|"preferred"}]
+    and the legacy flat list[str] format (treating all as required for backward compat).
 
-    Also handles the case where skills were stored as a single comma-separated
-    string (e.g. ["React, TypeScript, Python"]) by expanding them before comparison.
+    If required_skills is empty → 1.0 (no hard requirement → perfect fit).
     """
-    if not required_skills:
+    if not job_skill_requirements:
         return 1.0
     if not candidate_skills:
         return 0.0
 
-    # Expand any comma-concatenated entries (handles legacy corrupt data gracefully)
-    expanded_c: set[str] = set()
+    # Expand any comma-concatenated entries
+    candidate_set: set[str] = set()
     for s in candidate_skills:
-        for part in s.split(","):
+        for part in str(s).split(","):
             clean = part.strip().lower()
             if clean:
-                expanded_c.add(clean)
+                candidate_set.add(clean)
 
-    r = {s.lower() for s in required_skills}
-    return len(expanded_c & r) / len(r)
+    # Normalise job skills into (skill, level) tuples
+    required: list[str] = []
+    preferred: list[str] = []
+    for item in job_skill_requirements:
+        if isinstance(item, dict):
+            skill = item.get("skill", "").lower().strip()
+            level = item.get("level", "required")
+        else:
+            skill = str(item).lower().strip()
+            level = "required"  # legacy flat string → treat as required
+        if not skill:
+            continue
+        if level == "preferred":
+            preferred.append(skill)
+        else:
+            required.append(skill)
+
+    required_ratio = (
+        sum(1 for s in required if s in candidate_set) / len(required) if required else 1.0
+    )
+    preferred_ratio = (
+        sum(1 for s in preferred if s in candidate_set) / len(preferred) if preferred else 1.0
+    )
+
+    return (settings.REQUIRED_SKILL_WEIGHT * required_ratio
+            + settings.PREFERRED_SKILL_WEIGHT * preferred_ratio)
 
 
 def experience_fit(candidate_years: int, min_years: int) -> float:
@@ -143,6 +169,20 @@ def passes_hard_filters(candidate: Any, job: Any) -> bool:
         if c_min > j_max or j_min > c_max:  # type: ignore[operator]
             return False
 
+    # 4. Required skill hard gate — if the job has required-level skills and
+    #    the candidate matches zero of them, reject before soft scoring.
+    job_skills = getattr(job, "required_skills", []) or []
+    required_only = [
+        (item["skill"] if isinstance(item, dict) else item)
+        for item in job_skills
+        if not isinstance(item, dict) or item.get("level", "required") == "required"
+    ]
+    if required_only:
+        c_skills = getattr(candidate, "skills", []) or []
+        candidate_set = {s.lower().strip() for s in c_skills}
+        if not any(r.lower().strip() in candidate_set for r in required_only):
+            return False
+
     return True
 
 
@@ -167,16 +207,15 @@ def compute_match_score(candidate: Any, job: Any) -> MatchScore:
     j_emb = getattr(job, "listing_embedding", None) or []
 
     if not c_emb or not j_emb:
-        # Honest fallback: If embeddings are missing, we just use skill overlap.
-        # We don't pretend to retry embedding generation synchronously.
-        c_skills = getattr(candidate, "skills", []) or []
-        j_skills = getattr(job, "required_skills", []) or []
-        sim = skill_overlap_ratio(c_skills, j_skills)
+        # Honest fallback: embeddings missing. Use a neutral baseline (0.5) so
+        # the embedding weight doesn't collapse to zero and drag total down.
+        # The skill_overlap term will carry the precision signal correctly.
+        sim = 0.5
         used_fallback = True
     else:
         sim = cosine_similarity(c_emb, j_emb)
 
-    # --- skill overlap ---
+    # --- skill overlap (weighted: required vs preferred) ---
     c_skills = getattr(candidate, "skills", []) or []
     j_skills = getattr(job, "required_skills", []) or []
     sk = skill_overlap_ratio(list(c_skills), list(j_skills))
