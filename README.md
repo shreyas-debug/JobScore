@@ -162,8 +162,6 @@ Every match record stores `score_breakdown` as a JSON dict with all four compone
 | CodeLens | Developer Tools | Backend Engineer (Analysis Engine) |
 | Depot Marketplace | Marketplace & B2B | Fullstack Engineer |
 
-All company recruiter accounts use password: `Password123!`
-
 ---
 
 ## Repository Structure
