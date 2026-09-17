@@ -127,9 +127,9 @@ export default function JobListingsPage() {
 
                   {job.required_skills && job.required_skills.length > 0 && (
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
-                      {job.required_skills.map((skill) => (
-                        <span key={skill} className="skill-tag" style={{ fontSize: "0.75rem", padding: "2px 8px" }}>
-                          {skill}
+                      {job.required_skills.map((s) => (
+                        <span key={s.skill} className="skill-tag" style={{ fontSize: "0.75rem", padding: "2px 8px" }}>
+                          {s.skill}
                         </span>
                       ))}
                     </div>
