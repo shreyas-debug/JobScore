@@ -30,8 +30,12 @@ async def _update_candidate_embedding(candidate_id_str: str, text: str) -> dict:
     # Run the heavy encode operation in a thread to not block this async worker loop
     try:
         embedding = await asyncio.to_thread(encode, text)
-    except (TimeoutError, RuntimeError):
-        return {"status": "failed", "reason": "encode_error"}
+    except (TimeoutError, RuntimeError) as e:
+        logger.error(
+            "embedding_encode_failed candidate_id=%s error=%s",
+            candidate_id_str, str(e)
+        )
+        return {"status": "failed", "reason": "encode_error", "error": str(e)}
 
     async with AsyncSessionLocal() as db:
         candidate = await db.get(Candidate, candidate_id)
@@ -64,8 +68,12 @@ async def _update_job_embedding(job_listing_id_str: str, text: str) -> dict:
     
     try:
         embedding = await asyncio.to_thread(encode, text)
-    except (TimeoutError, RuntimeError):
-        return {"status": "failed", "reason": "encode_error"}
+    except (TimeoutError, RuntimeError) as e:
+        logger.error(
+            "embedding_encode_failed job_id=%s error=%s",
+            job_listing_id_str, str(e)
+        )
+        return {"status": "failed", "reason": "encode_error", "error": str(e)}
 
     async with AsyncSessionLocal() as db:
         job = await db.get(JobListing, job_id)
