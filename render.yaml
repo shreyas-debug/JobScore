@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: jobscore-api
+    env: docker
+    rootDir: backend
+    dockerfilePath: Dockerfile
+    # Override the local dev CMD in the Dockerfile with the production command
+    # Run migrations first, then start the web server
+    dockerCommand: bash -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: MATCH_SCORE_THRESHOLD
+        value: 0.60
+      - key: REQUIRED_SKILL_WEIGHT
+        value: 0.75
+      - key: PREFERRED_SKILL_WEIGHT
+        value: 0.25
+
+  - type: worker
+    name: jobscore-worker
+    env: docker
+    rootDir: backend
+    dockerfilePath: Dockerfile
+    dockerCommand: celery -A app.workers.celery_app worker --loglevel=info
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        fromService:
+          type: web
+          name: jobscore-api
+          envVarKey: JWT_SECRET_KEY
+      - key: MATCH_SCORE_THRESHOLD
+        value: 0.60
+      - key: REQUIRED_SKILL_WEIGHT
+        value: 0.75
+      - key: PREFERRED_SKILL_WEIGHT
+        value: 0.25
