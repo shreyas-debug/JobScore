@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     EMBEDDING_MODEL_NAME: str = "all-MiniLM-L6-v2"
-    MATCH_SCORE_THRESHOLD: float = 0.35
+    MATCH_SCORE_THRESHOLD: float = 0.60
     REQUIRED_SKILL_WEIGHT: float = 0.75
     PREFERRED_SKILL_WEIGHT: float = 0.25
     DAILY_SWIPE_CAP: int = 50
