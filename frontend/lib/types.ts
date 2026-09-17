@@ -103,6 +103,7 @@ export interface MatchBreakdown {
     experience_fit: number;
     salary_overlap: number;
     total: number;
+    used_embedding_fallback?: boolean;
   } | null;
   status: string;
 }
